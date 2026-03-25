@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="TamonKeep">
+<meta name="theme-color" content="#ffffff">
+<title>TamonKeep</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f8f9fa;--surface:#fff;--border:#e0e0e0;--border2:#bdbdbd;
+  --text:#202124;--muted:#5f6368;--hint:#80868b;
+  --yellow:#fff9c4;--green:#e6f4ea;--blue:#e8f0fe;--red:#fce8e6;
+  --purple:#f3e8fd;--orange:#fef3e2;--teal:#e6f4f1;--gray:#f1f3f4;
+  --radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#1e1e1e;--surface:#2d2d2d;--border:#3c3c3c;--border2:#555;--text:#e8eaed;--muted:#9aa0a6;--hint:#5f6368}
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overscroll-behavior:none}
+
+/* Header */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 12px;height:56px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.logo{font-size:16px;font-weight:500;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:6px}
+.search-bar{flex:1;position:relative}
+.search-bar input{width:100%;padding:9px 12px 9px 36px;border:none;border-radius:var(--radius-lg);background:var(--bg);font-size:15px;color:var(--text);outline:none}
+.search-bar input:focus{background:var(--surface);box-shadow:0 0 0 2px #1a73e8}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
+.h-btn{width:40px;height:40px;border:none;background:none;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--muted);flex-shrink:0}
+.h-btn:hover,.h-btn:active{background:var(--bg)}
+
+/* New note input */
+.new-note-wrap{padding:16px 12px 8px;max-width:700px;margin:0 auto;width:100%}
+.new-note-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);box-shadow:0 2px 6px rgba(0,0,0,.1);overflow:hidden}
+.new-collapsed{padding:14px 18px;font-size:15px;color:var(--hint);cursor:text;user-select:none}
+.new-expanded{display:none;flex-direction:column}
+.new-title-inp{padding:14px 18px 4px;border:none;outline:none;font-size:16px;font-weight:500;color:var(--text);background:none;width:100%;font-family:inherit}
+.new-body-inp{padding:4px 18px 10px;border:none;outline:none;font-size:15px;color:var(--text);background:none;width:100%;resize:none;min-height:56px;line-height:1.6;font-family:inherit}
+.new-colors{display:flex;gap:8px;padding:8px 14px;border-top:1px solid var(--border)}
+.cc{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex-shrink:0}
+.cc.sel{border-color:#1a73e8;transform:scale(1.1)}
+.new-footer{padding:8px 12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tag-chips{display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0}
+.chip{font-size:12px;padding:3px 9px;border-radius:16px;background:var(--bg);color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:3px;border:1px solid var(--border)}
+.add-label-btn{font-size:12px;padding:4px 10px;border:1px dashed var(--border2);border-radius:16px;color:var(--muted);cursor:pointer;background:none;white-space:nowrap}
+.close-btn{padding:7px 14px;border:none;background:none;font-size:14px;color:var(--muted);cursor:pointer;border-radius:var(--radius);margin-left:auto}
+.close-btn:hover{background:var(--bg)}
+.tag-inp{padding:4px 10px;border:1px solid var(--border2);border-radius:16px;font-size:12px;outline:none;background:var(--surface);color:var(--text);width:90px;font-family:inherit}
+
+/* Layout */
+.body-wrap{display:flex;max-width:1200px;margin:0 auto;width:100%}
+.sidebar{width:200px;padding:8px 0;flex-shrink:0}
+@media(max-width:640px){.sidebar{display:none}}
+.sidebar-item{padding:8px 12px;font-size:14px;color:var(--muted);cursor:pointer;border-radius:0 24px 24px 0;margin-right:8px;display:flex;align-items:center;gap:10px}
+.sidebar-item:hover,.sidebar-item.active{background:var(--yellow);color:var(--text)}
+@media(prefers-color-scheme:dark){.sidebar-item:hover,.sidebar-item.active{background:#3c3c00;color:var(--text)}}
+.tag-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sec-label{padding:12px 16px 4px;font-size:11px;color:var(--hint);text-transform:uppercase;letter-spacing:.5px}
+
+/* Notes */
+.notes-wrap{flex:1;padding:8px 12px 80px;overflow-x:hidden}
+.masonry{columns:var(--cols,3);column-gap:10px}
+@media(max-width:900px){.masonry{--cols:2}}
+@media(max-width:480px){.masonry{--cols:2}}
+@media(max-width:360px){.masonry{--cols:1}}
+.note-card{break-inside:avoid;margin-bottom:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;cursor:pointer;position:relative;transition:box-shadow .15s}
+.note-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.12);border-color:var(--border2)}
+.note-card:active{opacity:.9}
+.nc-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:5px;word-break:break-word}
+.nc-body{font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:280px;overflow:hidden}
+.nc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.nc-tag{font-size:11px;padding:2px 8px;border-radius:16px;font-weight:400}
+.nc-files{font-size:11px;color:var(--hint);margin-top:6px}
+.nc-date{font-size:11px;color:var(--hint);margin-top:6px}
+.pin-mark{position:absolute;top:8px;right:10px;font-size:13px;opacity:.5}
+.hover-acts{position:absolute;bottom:6px;right:6px;display:none;gap:3px}
+.note-card:hover .hover-acts{display:flex}
+@media(max-width:640px){.hover-acts{display:flex !important}}
+.ha-btn{width:28px;height:28px;border:none;background:var(--bg);border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.ha-btn:active{background:var(--border)}
+
+/* Inline edit */
+.note-card.editing{box-shadow:0 4px 16px rgba(0,0,0,.16) !important;border-color:var(--border2) !important;z-index:10}
+.nc-title-edit{width:100%;border:none;outline:none;background:transparent;font-family:inherit;font-size:14px;font-weight:500;color:var(--text);padding:0;margin-bottom:5px}
+.nc-body-edit{width:100%;border:none;outline:none;background:transparent;font-family:inherit;font-size:13px;color:var(--muted);resize:none;padding:0;line-height:1.6;min-height:40px}
+
+/* Context menu */
+.ctx{position:fixed;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:500;min-width:190px;padding:4px 0;display:none}
+.ctx-item{padding:10px 18px;font-size:14px;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:12px}
+.ctx-item:hover,.ctx-item:active{background:var(--bg)}
+.ctx-item.danger{color:#d93025}
+.ctx-sep{height:1px;background:var(--border);margin:4px 0}
+
+/* Mobile bottom nav */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);height:56px;z-index:100}
+@media(max-width:640px){.bottom-nav{display:flex}}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:10px;color:var(--hint);padding:4px 0}
+.bnav-item.active{color:#1a73e8}
+.bnav-icon{font-size:20px;line-height:1}
+
+/* Import overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:600;padding:20px}
+.overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:24px;max-width:420px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal h3{font-size:17px;font-weight:500;margin-bottom:8px}
+.modal p{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:16px}
+.drop-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:28px 20px;text-align:center;cursor:pointer}
+.drop-zone:active{background:var(--bg)}
+.drop-zone p{font-size:14px;color:var(--muted)}
+.drop-zone .sub{font-size:12px;margin-top:4px;color:var(--hint)}
+.modal-btns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.mbtn{padding:8px 18px;border-radius:var(--radius);font-size:14px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit}
+.mbtn.primary{background:#1a73e8;color:#fff;border-color:#1a73e8}
+.import-msg{font-size:13px;color:var(--muted);margin-top:8px;min-height:20px}
+input[type=file]{display:none}
+
+/* Empty */
+.empty{text-align:center;padding:60px 20px;color:var(--hint)}
+.empty-icon{font-size:52px;margin-bottom:12px;opacity:.3}
+
+/* Fab (mobile) */
+.fab{display:none;position:fixed;bottom:68px;right:16px;width:52px;height:52px;background:#1a73e8;border-radius:50%;border:none;cursor:pointer;font-size:28px;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.3);align-items:center;justify-content:center;z-index:200}
+@media(max-width:640px){.fab{display:flex}}
+
+/* Toast */
+.toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 18px;border-radius:var(--radius);font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+
+/* Color swatches */
+.c-default{background:#fff}
+.c-yellow{background:var(--yellow)}
+.c-green{background:var(--green)}
+.c-blue{background:var(--blue)}
+.c-red{background:var(--red)}
+.c-purple{background:var(--purple)}
+.c-orange{background:var(--orange)}
+.c-teal{background:var(--teal)}
+@media(prefers-color-scheme:dark){
+  .c-default{background:#2d2d2d}.c-yellow{background:#4a4a00}.c-green{background:#1e3a2a}.c-blue{background:#1a2a4a}.c-red{background:#4a1a18}.c-purple{background:#3a1a4a}.c-orange{background:#4a3000}.c-teal{background:#1a3a38}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">📋 TamonKeep</div>
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="メモを検索" oninput="renderNotes()">
+  </div>
+  <button class="h-btn" onclick="showImport()" title="Keepデータをインポート">📥</button>
+  <button class="h-btn" onclick="toggleView()" id="viewBtn" title="表示切替">▦</button>
+</div>
+
+<div class="new-note-wrap" id="newNoteWrap">
+  <div class="new-note-box" id="newNoteBox">
+    <div class="new-collapsed" id="newCollapsed" onclick="expandNew()">メモを入力...</div>
+    <div class="new-expanded" id="newExpanded">
+      <input class="new-title-inp" id="newTitle" placeholder="タイトル" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('newBody').focus()}">
+      <textarea class="new-body-inp" id="newBody" placeholder="メモを入力..." oninput="autoH(this)"></textarea>
+      <div class="new-colors" id="newColors"></div>
+      <div class="new-footer">
+        <div class="tag-chips" id="newTagChips"></div>
+        <button class="add-label-btn" onclick="startNewTag()">＋ ラベル</button>
+        <button class="close-btn" onclick="closeNew()">閉じる</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="body-wrap">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-item active" id="nav-all" onclick="setFilter('all',this)">📋 メモ</div>
+    <div class="sidebar-item" id="nav-pinned" onclick="setFilter('pinned',this)">📌 ピン留め</div>
+    <div class="sidebar-item" id="nav-files" onclick="setFilter('files',this)">📎 ファイル付き</div>
+    <div class="sec-label">ラベル</div>
+    <div id="sidebarTags"></div>
+  </div>
+  <div class="notes-wrap">
+    <div class="masonry" id="masonry"></div>
+  </div>
+</div>
+
+<!-- Mobile bottom nav -->
+<div class="bottom-nav">
+  <div class="bnav-item active" id="bnav-all" onclick="setFilter('all',this);setBnav('bnav-all')">
+    <div class="bnav-icon">📋</div><span>すべて</span>
+  </div>
+  <div class="bnav-item" id="bnav-pinned" onclick="setFilter('pinned',this);setBnav('bnav-pinned')">
+    <div class="bnav-icon">📌</div><span>ピン留め</span>
+  </div>
+  <div class="bnav-item" id="bnav-labels" onclick="showLabelSheet()">
+    <div class="bnav-icon">🏷</div><span>ラベル</span>
+  </div>
+  <div class="bnav-item" id="bnav-import" onclick="showImport()">
+    <div class="bnav-icon">📥</div><span>インポート</span>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="expandNew();document.getElementById('newNoteWrap').scrollIntoView({behavior:'smooth'})">＋</button>
+
+<!-- Context menu -->
+<div class="ctx" id="ctx">
+  <div class="ctx-item" id="ctx-pin" onclick="ctxDo('pin')">📌 ピン留め切替</div>
+  <div class="ctx-item" onclick="ctxDo('color')">🎨 色を変更</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="ctxDo('addlabel')">🏷 ラベルを追加</div>
+  <div class="ctx-item" onclick="ctxDo('file')">📎 ファイルを添付</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="ctxDo('delete')">🗑 削除</div>
+</div>
+
+<!-- Color picker popup (for context menu color change) -->
+<div class="ctx" id="colorPicker" style="padding:10px 12px">
+  <div style="display:flex;flex-wrap:wrap;gap:8px" id="colorPickerInner"></div>
+</div>
+
+<!-- Label sheet (mobile) -->
+<div class="overlay" id="labelOverlay" onclick="if(event.target===this)hideLabelSheet()">
+  <div class="modal">
+    <h3>🏷 ラベル</h3>
+    <div id="labelList" style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px"></div>
+    <div class="modal-btns"><button class="mbtn" onclick="hideLabelSheet()">閉じる</button></div>
+  </div>
+</div>
+
+<!-- Import overlay -->
+<div class="overlay" id="importOverlay" onclick="if(event.target===this)hideImport()">
+  <div class="modal">
+    <h3>📥 Keepデータをインポート</h3>
+    <p>① <a href="https://takeout.google.com" style="color:#1a73e8">Google Takeout</a> でKeepをエクスポート<br>② ZIPを解凍 → <strong>Keepフォルダ内の.jsonファイル</strong>を複数選択</p>
+    <div class="drop-zone" onclick="document.getElementById('jsonIn').click()">
+      <p>📂 タップしてJSONファイルを選択</p>
+      <p class="sub">複数ファイルまとめて選択可</p>
+    </div>
+    <input type="file" id="jsonIn" multiple accept=".json" onchange="importFiles(this.files)">
+    <div class="import-msg" id="importMsg"></div>
+    <div class="modal-btns"><button class="mbtn" onclick="hideImport()">閉じる</button></div>
+  </div>
+</div>
+
+<!-- File attach -->
+<input type="file" id="fileIn" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.dwg,.dxf,.xlsx,.docx,.txt,.zip" onchange="doAttach(this.files)">
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const COLORS=[
+  {key:'',label:'デフォルト',cls:'c-default'},
+  {key:'#fff9c4',label:'黄',cls:'c-yellow'},
+  {key:'#e6f4ea',label:'緑',cls:'c-green'},
+  {key:'#e8f0fe',label:'青',cls:'c-blue'},
+  {key:'#fce8e6',label:'赤',cls:'c-red'},
+  {key:'#f3e8fd',label:'紫',cls:'c-purple'},
+  {key:'#fef3e2',label:'オレンジ',cls:'c-orange'},
+  {key:'#e6f4f1',label:'ティール',cls:'c-teal'},
+];
+const TCOLORS=['#fef08a','#bbf7d0','#bfdbfe','#fecaca','#ddd6fe','#fed7aa','#fbcfe8','#99f6e4'];
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=(Math.imul(31,h)+s.charCodeAt(i))|0;return Math.abs(h)}
+function tc(t){return TCOLORS[hashStr(t)%TCOLORS.length]}
+function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}
+function autoH(el){el.style.height='auto';el.style.height=el.scrollHeight+'px'}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+
+let notes=JSON.parse(localStorage.getItem('tk3')||'[]');
+let filter='all',filterTag=null,viewCols=3;
+let newColor='',newTags=[],newActive=false;
+let ctxId=null,editId=null;
+
+function save(){localStorage.setItem('tk3',JSON.stringify(notes));renderAll()}
+
+/* ── New note ── */
+function expandNew(){
+  newActive=true;
+  document.getElementById('newCollapsed').style.display='none';
+  document.getElementById('newExpanded').style.display='flex';
+  buildNewColors();
+  setTimeout(()=>document.getElementById('newTitle').focus(),50);
+}
+function closeNew(){
+  const t=document.getElementById('newTitle').value.trim();
+  const b=document.getElementById('newBody').value.trim();
+  if(t||b){
+    notes.unshift({id:gid(),title:t,body:b,tags:[...newTags],color:newColor,pinned:false,files:[],created:Date.now()});
+    save();toast('メモを保存しました');
+  }
+  document.getElementById('newTitle').value='';
+  document.getElementById('newBody').value='';
+  newTags=[];newColor='';
+  renderNewTags();
+  document.getElementById('newExpanded').style.display='none';
+  document.getElementById('newCollapsed').style.display='';
+  newActive=false;
+}
+function buildNewColors(){
+  document.getElementById('newColors').innerHTML=COLORS.map(c=>`<div class="cc${newColor===c.key?' sel':''} ${c.cls}" title="${c.label}" onclick="selNC('${c.key}')"></div>`).join('');
+}
+function selNC(k){newColor=k;buildNewColors()}
+function startNewTag(){
+  const wrap=document.getElementById('newTagChips');
+  const inp=document.createElement('input');
+  inp.className='tag-inp';inp.placeholder='ラベル名';
+  wrap.appendChild(inp);inp.focus();
+  const done=()=>{const v=inp.value.trim();if(v&&!newTags.includes(v))newTags.push(v);renderNewTags();inp.remove()};
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===','){e.preventDefault();done()}if(e.key==='Escape')inp.remove()});
+  inp.addEventListener('blur',done);
+}
+function renderNewTags(){
+  const wrap=document.getElementById('newTagChips');
+  [...wrap.querySelectorAll('.chip')].forEach(e=>e.remove());
+  newTags.forEach(t=>{
+    const c=document.createElement('span');c.className='chip';
+    c.innerHTML=`${t} <span onclick="rmNT('${t}')">✕</span>`;
+    wrap.prepend(c);
+  });
+}
+function rmNT(t){newTags=newTags.filter(x=>x!==t);renderNewTags()}
+
+/* ── Filter ── */
+function setFilter(f,el){
+  filter=f;filterTag=null;
+  document.querySelectorAll('.sidebar-item,.bnav-item[id^=bnav-all],.bnav-item[id^=bnav-pinned]').forEach(e=>e.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderNotes();
+}
+function setBnav(id){document.querySelectorAll('.bnav-item').forEach(e=>e.classList.remove('active'));document.getElementById(id)?.classList.add('active')}
+function setTagFilter(t){filterTag=filterTag===t?null:t;filter='all';renderNotes()}
+function toggleView(){
+  viewCols=viewCols===3?1:3;
+  document.getElementById('masonry').style.columns=viewCols;
+  document.getElementById('viewBtn').textContent=viewCols===1?'▦':'☰';
+}
+
+/* ── Render ── */
+function renderAll(){renderNotes();renderSideTags()}
+function getFiltered(){
+  const q=(document.getElementById('searchInput').value||'').toLowerCase();
+  return notes.filter(n=>{
+    if(filter==='pinned'&&!n.pinned)return false;
+    if(filter==='files'&&!(n.files&&n.files.length))return false;
+    if(filterTag&&!(n.tags||[]).includes(filterTag))return false;
+    if(q)return(n.title||'').toLowerCase().includes(q)||(n.body||'').toLowerCase().includes(q)||(n.tags||[]).some(t=>t.toLowerCase().includes(q));
+    return true;
+  });
+}
+function renderNotes(){
+  const m=document.getElementById('masonry');
+  const list=[...getFiltered().filter(n=>n.pinned),...getFiltered().filter(n=>!n.pinned)];
+  if(!list.length){m.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>メモがありません</p></div>';return}
+  m.innerHTML=list.map(cardHtml).join('');
+}
+function cardBg(color){
+  if(!color)return'';
+  const c=COLORS.find(x=>x.key===color);
+  return c?`class="note-card ${c.cls}"` :`class="note-card"`;
+}
+function cardHtml(n){
+  const bg=n.color?COLORS.find(x=>x.key===n.color)?.cls||'':'';
+  const tags=(n.tags||[]).map(t=>`<span class="nc-tag" style="background:${tc(t)};color:#333">${t}</span>`).join('');
+  const files=n.files&&n.files.length?`<div class="nc-files">📎 ${n.files.length}件のファイル</div>`:'';
+  const pin=n.pinned?`<span class="pin-mark">📌</span>`:'';
+  const date=new Date(n.created).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});
+  return`<div class="note-card ${bg}" id="nc-${n.id}" onclick="onCard(event,'${n.id}')" oncontextmenu="showCtx(event,'${n.id}')" ontouchstart="onTouchStart(event,'${n.id}')" ontouchend="onTouchEnd()">
+    ${pin}
+    <div class="nc-title" id="nct-${n.id}">${esc(n.title)}</div>
+    <div class="nc-body" id="ncb-${n.id}">${esc(n.body)}</div>
+    ${tags?`<div class="nc-tags">${tags}</div>`:''}
+    ${files}
+    <div class="nc-date">${date}</div>
+    <div class="hover-acts">
+      <button class="ha-btn" onclick="event.stopPropagation();togglePin('${n.id}')" title="ピン">📌</button>
+      <button class="ha-btn" onclick="event.stopPropagation();showCtx(event,'${n.id}')" title="メニュー">⋮</button>
+    </div>
+  </div>`;
+}
+function renderSideTags(){
+  const tags=[...new Set(notes.flatMap(n=>n.tags||[]))];
+  document.getElementById('sidebarTags').innerHTML=tags.map(t=>`<div class="sidebar-item${filterTag===t?' active':''}" onclick="setTagFilter('${t}')"><span class="tag-dot" style="background:${tc(t)}"></span>${t}</div>`).join('');
+}
+
+/* ── Long press (mobile context) ── */
+let pressTimer=null,pressId=null;
+function onTouchStart(e,id){pressTimer=setTimeout(()=>{e.preventDefault();showCtx(e.touches[0],id)},600)}
+function onTouchEnd(){clearTimeout(pressTimer)}
+
+/* ── Inline edit ── */
+function onCard(e,id){
+  if(e.target.closest('.hover-acts'))return;
+  if(editId===id)return;
+  if(editId)commitEdit(editId);
+  startEdit(id);
+}
+function startEdit(id){
+  editId=id;
+  const n=notes.find(x=>x.id===id);if(!n)return;
+  const card=document.getElementById('nc-'+id);
+  card.classList.add('editing');
+  document.getElementById('nct-'+id).innerHTML=`<input class="nc-title-edit" id="ei-${id}" value="${(n.title||'').replace(/"/g,'&quot;')}" placeholder="タイトル" onclick="event.stopPropagation()">`;
+  document.getElementById('ncb-'+id).innerHTML=`<textarea class="nc-body-edit" id="eb-${id}" placeholder="内容..." onclick="event.stopPropagation()">${n.body||''}</textarea>`;
+  const ta=document.getElementById('eb-'+id);
+  autoH(ta);ta.addEventListener('input',()=>autoH(ta));
+  document.getElementById('ei-'+id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ta.focus()}});
+  setTimeout(()=>{const inp=document.getElementById('ei-'+id);if(inp){inp.focus();inp.select()}},50);
+  document.addEventListener('click',outsideEdit);
+}
+function outsideEdit(e){if(editId&&!document.getElementById('nc-'+editId)?.contains(e.target))commitEdit(editId)}
+function commitEdit(id){
+  document.removeEventListener('click',outsideEdit);
+  const inp=document.getElementById('ei-'+id);
+  const ta=document.getElementById('eb-'+id);
+  if(!inp||!ta){editId=null;return}
+  const idx=notes.findIndex(x=>x.id===id);
+  if(idx>-1){notes[idx].title=inp.value.trim();notes[idx].body=ta.value.trim();notes[idx].updated=Date.now()}
+  editId=null;save();toast('保存しました');
+}
+
+/* ── Context menu ── */
+function showCtx(e,id){
+  if(typeof e.preventDefault==='function')e.preventDefault();
+  if(editId)commitEdit(editId);
+  ctxId=id;
+  const n=notes.find(x=>x.id===id);
+  document.getElementById('ctx-pin').textContent=n?.pinned?'📌 ピン留め解除':'📌 ピン留め';
+  const m=document.getElementById('ctx');
+  m.style.display='block';
+  const cx=e.clientX||e.pageX||100;
+  const cy=e.clientY||e.pageY||200;
+  m.style.left=cx+'px';m.style.top=cy+'px';
+  requestAnimationFrame(()=>{
+    if(cx+m.offsetWidth>window.innerWidth)m.style.left=Math.max(4,cx-m.offsetWidth)+'px';
+    if(cy+m.offsetHeight>window.innerHeight)m.style.top=Math.max(4,cy-m.offsetHeight)+'px';
+  });
+}
+function hideCtx(){document.getElementById('ctx').style.display='none';document.getElementById('colorPicker').style.display='none';ctxId=null}
+function ctxDo(act){
+  const id=ctxId;hideCtx();if(!id)return;
+  if(act==='pin')togglePin(id);
+  else if(act==='delete')deleteNote(id);
+  else if(act==='color')openColorPicker(id);
+  else if(act==='addlabel'){const l=prompt('ラベル名:','');if(l){const idx=notes.findIndex(x=>x.id===id);if(idx>-1){if(!notes[idx].tags)notes[idx].tags=[];if(!notes[idx].tags.includes(l.trim()))notes[idx].tags.push(l.trim());save()}}}
+  else if(act==='file'){document.getElementById('fileIn').setAttribute('data-id',id);document.getElementById('fileIn').click()}
+}
+function openColorPicker(id){
+  ctxId=id;
+  const p=document.getElementById('colorPicker');
+  document.getElementById('colorPickerInner').innerHTML=COLORS.map(c=>`<div class="cc ${c.cls}" style="width:28px;height:28px;border:2px solid #ccc;cursor:pointer" title="${c.label}" onclick="applyColor('${id}','${c.key}')"></div>`).join('');
+  const card=document.getElementById('nc-'+id);
+  const r=card?.getBoundingClientRect();
+  p.style.left=(r?.left||100)+'px';p.style.top=((r?.bottom||200)+4)+'px';p.style.display='block';
+}
+function applyColor(id,key){
+  const idx=notes.findIndex(x=>x.id===id);
+  if(idx>-1){notes[idx].color=key;save()}
+  document.getElementById('colorPicker').style.display='none';ctxId=null;
+}
+function togglePin(id){const idx=notes.findIndex(x=>x.id===id);if(idx>-1){notes[idx].pinned=!notes[idx].pinned;save()}}
+function deleteNote(id){if(!confirm('このメモを削除しますか？'))return;notes=notes.filter(x=>x.id!==id);save();toast('削除しました')}
+
+/* ── File attach ── */
+function doAttach(files){
+  const id=document.getElementById('fileIn').getAttribute('data-id');if(!id)return;
+  const idx=notes.findIndex(x=>x.id===id);if(idx<0)return;
+  let done=0;
+  Array.from(files).forEach(f=>{
+    const r=new FileReader();r.onload=e=>{
+      if(!notes[idx].files)notes[idx].files=[];
+      notes[idx].files.push({name:f.name,size:f.size,data:e.target.result});
+      done++;if(done===files.length)save();
+    };r.readAsDataURL(f);
+  });
+}
+
+/* ── Import ── */
+function showImport(){document.getElementById('importOverlay').classList.add('show')}
+function hideImport(){document.getElementById('importOverlay').classList.remove('show')}
+function importFiles(files){
+  const msg=document.getElementById('importMsg');
+  msg.textContent='読み込み中...';
+  let done=0,imported=0;
+  Array.from(files).forEach(f=>{
+    const r=new FileReader();r.onload=e=>{
+      try{const d=JSON.parse(e.target.result);const n=parseKeep(d);if(n){notes.unshift(n);imported++}}catch(err){}
+      done++;if(done===files.length){save();msg.textContent=`✅ ${imported}件をインポートしました`;setTimeout(hideImport,2000)}
+    };r.readAsText(f,'UTF-8');
+  });
+}
+function parseKeep(d){
+  if(!d)return null;
+  const title=d.title||'';
+  let body='';
+  if(d.textContent)body=d.textContent;
+  else if(d.listContent)body=d.listContent.map(i=>`${i.isChecked?'☑':'☐'} ${i.text}`).join('\n');
+  const tags=(d.labels||[]).map(l=>l.name);
+  const colorMap={DEFAULT:'',YELLOW:'#fff9c4',GREEN:'#e6f4ea',BLUE:'#e8f0fe',RED:'#fce8e6',PURPLE:'#f3e8fd',ORANGE:'#fef3e2',TEAL:'#e6f4f1',GRAY:'#f1f3f4',CERULEAN:'#e8f0fe',WHITE:''};
+  const color=colorMap[d.color]||'';
+  const created=d.createdTimestampUsec?Math.floor(d.createdTimestampUsec/1000):Date.now();
+  if(!title&&!body)return null;
+  return{id:gid(),title,body,tags,color,pinned:!!d.isPinned,files:[],created};
+}
+
+/* ── Label sheet (mobile) ── */
+function showLabelSheet(){
+  const tags=[...new Set(notes.flatMap(n=>n.tags||[]))];
+  document.getElementById('labelList').innerHTML=tags.length
+    ?tags.map(t=>`<div class="sidebar-item${filterTag===t?' active':''}" onclick="setTagFilter('${t}');hideLabelSheet()"><span class="tag-dot" style="background:${tc(t)}"></span>${t}</div>`).join('')
+    :'<p style="font-size:13px;color:var(--hint);padding:8px">ラベルがありません</p>';
+  document.getElementById('labelOverlay').classList.add('show');
+}
+function hideLabelSheet(){document.getElementById('labelOverlay').classList.remove('show')}
+
+/* ── Global click handlers ── */
+document.addEventListener('click',e=>{
+  if(newActive&&!document.getElementById('newNoteBox').contains(e.target))closeNew();
+  if(!e.target.closest('#ctx')&&!e.target.closest('.ha-btn'))hideCtx();
+  if(!e.target.closest('#colorPicker')&&!e.target.closest('.ctx-item'))document.getElementById('colorPicker').style.display='none';
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(editId)commitEdit(editId);if(newActive)closeNew();hideCtx()}});
+
+/* ── Init ── */
+if(!notes.length){
+  notes=[
+    {id:gid(),title:'TamonKeepへようこそ',body:'Googleの付箋アプリKeepと同じ操作感で使えます。\n\n右上📥からKeepのJSONデータをインポートできます。',tags:['使い方'],color:'#fff9c4',pinned:true,files:[],created:Date.now()},
+    {id:gid(),title:'操作方法',body:'• 上の入力バーから新規メモ作成\n• カードをクリックして直接編集\n• 右クリック（長押し）でメニュー\n• スマホは右下＋ボタンから作成',tags:['使い方'],color:'',pinned:false,files:[],created:Date.now()-1000},
+  ];
+  save();
+}else{renderAll()}
+</script>
+</body>
+</html>
